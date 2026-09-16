@@ -37,6 +37,9 @@ export const regionOptions = [
   { value: "dire", label: "Dire Dawa" },
 ];
 
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_FILE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".pdf", ".mp3"];
+
 interface GrievanceDetailsCardProps {
   onNext: () => void;
   onBack: () => void;
@@ -50,10 +53,18 @@ interface GrievanceDetailsCardProps {
   setZone: (value: string) => void;
   woreda: string;
   setWoreda: (value: string) => void;
+  kebele: string;
+  setKebele: (value: string) => void;
+  serviceProviderName: string;
+  setServiceProviderName: (value: string) => void;
   description: string;
   setDescription: (value: string) => void;
+  desiredOutcome: string;
+  setDesiredOutcome: (value: string) => void;
   uploadedFile: File | null;
   setUploadedFile: (file: File | null) => void;
+  onSaveDraft: () => void;
+  draftJustSaved: boolean;
 }
 
 export function GrievanceDetailsCard({
@@ -69,10 +80,18 @@ export function GrievanceDetailsCard({
   setZone,
   woreda,
   setWoreda,
+  kebele,
+  setKebele,
+  serviceProviderName,
+  setServiceProviderName,
   description,
   setDescription,
+  desiredOutcome,
+  setDesiredOutcome,
   uploadedFile,
   setUploadedFile,
+  onSaveDraft,
+  draftJustSaved,
 }: GrievanceDetailsCardProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,9 +127,23 @@ export function GrievanceDetailsCard({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setUploadedFile(e.target.files[0]!);
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0]!;
+
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!ALLOWED_FILE_EXTENSIONS.includes(extension)) {
+      setError(`"${file.name}" isn't a supported file type. Attach a JPG, PNG, PDF, or MP3 file.`);
+      e.target.value = "";
+      return;
     }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`"${file.name}" is larger than the 10 MB limit.`);
+      e.target.value = "";
+      return;
+    }
+
+    setError(null);
+    setUploadedFile(file);
   };
 
   const handleRemoveFile = (e: React.MouseEvent) => {
@@ -219,6 +252,8 @@ export function GrievanceDetailsCard({
               </label>
               <input
                 type="text"
+                value={kebele}
+                onChange={(e) => setKebele(e.target.value)}
                 placeholder="Enter kebele or village name"
                 className="w-full bg-white border border-gray-300 text-gray-900 py-2.5 px-4 rounded-lg focus:outline-none focus:border-[#0b8535] focus:ring-2 focus:ring-[#0b8535]/20 transition-all shadow-sm text-sm"
               />
@@ -232,6 +267,8 @@ export function GrievanceDetailsCard({
             </label>
             <input
               type="text"
+              value={serviceProviderName}
+              onChange={(e) => setServiceProviderName(e.target.value)}
               placeholder="Enter Input store, cooperative, bank, or market name (if applicable)"
               className="w-full bg-white border border-gray-300 text-gray-900 py-2.5 px-4 rounded-lg focus:outline-none focus:border-[#0b8535] focus:ring-2 focus:ring-[#0b8535]/20 transition-all shadow-sm text-sm"
             />
@@ -258,6 +295,8 @@ export function GrievanceDetailsCard({
             </label>
             <textarea
               rows={3}
+              value={desiredOutcome}
+              onChange={(e) => setDesiredOutcome(e.target.value)}
               placeholder="What is the expected resolution for this grievance?"
               className="w-full bg-white border border-gray-300 text-gray-900 py-3 px-4 rounded-lg focus:outline-none focus:border-[#0b8535] focus:ring-2 focus:ring-[#0b8535]/20 transition-all shadow-sm text-sm resize-y"
             />
@@ -351,9 +390,12 @@ export function GrievanceDetailsCard({
               <span>All fields marked <span className="text-red-500">*</span> are required</span>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200">
+              <button
+                onClick={onSaveDraft}
+                className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+              >
                 <Save className="w-4 h-4 text-[#0b8535]" />
-                Save Draft
+                {draftJustSaved ? "Saved!" : "Save Draft"}
               </button>
               <button
                 onClick={handleNext}

@@ -14,8 +14,13 @@ interface ReviewAndSubmitCardProps {
   region: string;
   zone: string;
   woreda: string;
+  kebele: string;
+  serviceProviderName: string;
   description: string;
+  desiredOutcome: string;
   uploadedFile: File | null;
+  onSaveDraft: () => void;
+  draftJustSaved: boolean;
 }
 
 function labelFor(options: { value: string; label: string }[], value: string): string {
@@ -33,12 +38,17 @@ export function ReviewAndSubmitCard({
   region,
   zone,
   woreda,
+  kebele,
+  serviceProviderName,
   description,
+  desiredOutcome,
   uploadedFile,
+  onSaveDraft,
+  draftJustSaved,
 }: ReviewAndSubmitCardProps) {
   const [consentChecked, setConsentChecked] = useState(false);
 
-  const location = [labelFor(regionOptions, region), zone, woreda].filter(Boolean).join(", ") || "Not provided";
+  const location = [labelFor(regionOptions, region), zone, woreda, kebele].filter(Boolean).join(", ") || "Not provided";
   const identityFields = SI_FIELDS_BY_TYPE[submitterType] || [];
 
   return (
@@ -115,9 +125,17 @@ export function ReviewAndSubmitCard({
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Location</p>
                 <p className="text-[15px] font-semibold text-gray-900">{location}</p>
               </div>
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Service Provider / Branch / Office</p>
+                <p className="text-[15px] font-semibold text-gray-900">{serviceProviderName || "Not provided"}</p>
+              </div>
               <div className="md:col-span-2">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</p>
                 <p className="text-[15px] font-semibold text-gray-900">{description || "Not provided"}</p>
+              </div>
+              <div className="md:col-span-2">
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Desired Outcome</p>
+                <p className="text-[15px] font-semibold text-gray-900">{desiredOutcome || "Not provided"}</p>
               </div>
               <div className="md:col-span-2">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">
@@ -164,9 +182,12 @@ export function ReviewAndSubmitCard({
             <span>All fields marked <span className="text-red-500">*</span> are required</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200">
+            <button
+              onClick={onSaveDraft}
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
               <Save className="w-4 h-4 text-[#0b8535]" />
-              Save Draft
+              {draftJustSaved ? "Saved!" : "Save Draft"}
             </button>
             <button
               onClick={onSubmit}

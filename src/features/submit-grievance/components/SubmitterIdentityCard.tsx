@@ -9,7 +9,7 @@ import { CooperativeFPOForm, FIELDS as COOPERATIVE_FIELDS } from "./SI-Cooperati
 import { NGOForm, FIELDS as NGO_FIELDS } from "./SI-NGOForm";
 import { WoredaKebeleForm, FIELDS as WOREDA_KEBELE_FIELDS } from "./SI-WoredaKebeleForm";
 import { DevelopmentAgentForm, FIELDS as DEVELOPMENT_AGENT_FIELDS } from "./SI-DevelopmentAgentForm";
-import type { SIFieldMeta } from "./SI-types";
+import { isValidEmail, isValidPhoneNumber, type SIFieldMeta } from "./SI-types";
 
 /** Which field set applies to each submitter type — shared with ReviewAndSubmitCard for display and validation. */
 export const SI_FIELDS_BY_TYPE: Record<string, SIFieldMeta[]> = {
@@ -43,6 +43,8 @@ interface SubmitterIdentityCardProps {
   setSubmissionChannel: (value: string) => void;
   identityValues: Record<string, string>;
   setIdentityValue: (key: string, value: string) => void;
+  onSaveDraft: () => void;
+  draftJustSaved: boolean;
 }
 
 export function SubmitterIdentityCard({
@@ -53,6 +55,8 @@ export function SubmitterIdentityCard({
   setSubmissionChannel,
   identityValues,
   setIdentityValue,
+  onSaveDraft,
+  draftJustSaved,
 }: SubmitterIdentityCardProps) {
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +69,14 @@ export function SubmitterIdentityCard({
     const missing = requiredFields.some((field) => field.required && !identityValues[field.key]?.trim());
     if (missing) {
       setError("Fill in all fields marked as required before continuing.");
+      return;
+    }
+    if (identityValues.phoneNumber && !isValidPhoneNumber(identityValues.phoneNumber)) {
+      setError("Enter a valid contact number (digits only, 7-10 digits).");
+      return;
+    }
+    if (identityValues.email && !isValidEmail(identityValues.email)) {
+      setError("Enter a valid email address, or leave it blank.");
       return;
     }
     setError(null);
@@ -136,9 +148,12 @@ export function SubmitterIdentityCard({
             <span>All fields marked <span className="text-red-500">*</span> are required</span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200">
+            <button
+              onClick={onSaveDraft}
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
               <Save className="w-4 h-4 text-[#0b8535]" />
-              Save Draft
+              {draftJustSaved ? "Saved!" : "Save Draft"}
             </button>
             <button
               onClick={handleNext}

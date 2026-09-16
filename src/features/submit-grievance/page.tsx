@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { selectUser } from "@/features/auth/store/authSlice";
+import { clearGrievanceDraft, loadGrievanceDraft, saveGrievanceDraft } from "@/lib/submitGrievanceDraft";
+import { useAppSelector } from "@/store/hooks";
 import { Stepper } from "./components/Stepper";
 import { SubmitterIdentityCard } from "./components/SubmitterIdentityCard";
 import { GrievanceDetailsCard } from "./components/GrievanceDetailsCard";
@@ -12,11 +15,19 @@ import { SubmitGrievanceHeader } from "./components/TopHeader";
 export default function SubmitGrievancePage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [draftJustSaved, setDraftJustSaved] = useState(false);
+
+  const user = useAppSelector(selectUser);
+  const userEmail = user?.email;
+  // Only recomputed when the signed-in email changes, not on every keystroke
+  // this page's own step-wizard state causes — its result feeds nothing but
+  // the useState initializers just below.
+  const savedDraft = useMemo(() => (userEmail ? loadGrievanceDraft(userEmail) : null), [userEmail]);
 
   // Step 1 — Submitter Identity
-  const [submitterType, setSubmitterType] = useState("");
-  const [submissionChannel, setSubmissionChannel] = useState("");
-  const [identityValues, setIdentityValues] = useState<Record<string, string>>({});
+  const [submitterType, setSubmitterType] = useState(savedDraft?.submitterType ?? "");
+  const [submissionChannel, setSubmissionChannel] = useState(savedDraft?.submissionChannel ?? "");
+  const [identityValues, setIdentityValues] = useState<Record<string, string>>(savedDraft?.identityValues ?? {});
 
   const handleSubmitterTypeChange = (value: string) => {
     setSubmitterType(value);
@@ -31,12 +42,17 @@ export default function SubmitGrievancePage() {
   };
 
   // Step 2 — Grievance Details
-  const [serviceCategory, setServiceCategory] = useState("");
-  const [grievanceType, setGrievanceType] = useState("");
-  const [region, setRegion] = useState("");
-  const [zone, setZone] = useState("");
-  const [woreda, setWoreda] = useState("");
-  const [description, setDescription] = useState("");
+  const [serviceCategory, setServiceCategory] = useState(savedDraft?.serviceCategory ?? "");
+  const [grievanceType, setGrievanceType] = useState(savedDraft?.grievanceType ?? "");
+  const [region, setRegion] = useState(savedDraft?.region ?? "");
+  const [zone, setZone] = useState(savedDraft?.zone ?? "");
+  const [woreda, setWoreda] = useState(savedDraft?.woreda ?? "");
+  const [kebele, setKebele] = useState(savedDraft?.kebele ?? "");
+  const [serviceProviderName, setServiceProviderName] = useState(savedDraft?.serviceProviderName ?? "");
+  const [description, setDescription] = useState(savedDraft?.description ?? "");
+  const [desiredOutcome, setDesiredOutcome] = useState(savedDraft?.desiredOutcome ?? "");
+  // Never restored from a draft — a File object isn't serializable, so a
+  // reloaded draft asks the user to re-attach it.
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleNext = () => {
@@ -47,8 +63,29 @@ export default function SubmitGrievancePage() {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const handleSaveDraft = () => {
+    if (!userEmail) return;
+    saveGrievanceDraft(userEmail, {
+      submitterType,
+      submissionChannel,
+      identityValues,
+      serviceCategory,
+      grievanceType,
+      region,
+      zone,
+      woreda,
+      kebele,
+      serviceProviderName,
+      description,
+      desiredOutcome,
+    });
+    setDraftJustSaved(true);
+    window.setTimeout(() => setDraftJustSaved(false), 2500);
+  };
+
   const handleSubmit = () => {
     setIsSubmitted(true);
+    if (userEmail) clearGrievanceDraft(userEmail);
     // In a real application, you would scroll to top here or handle routing
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -72,7 +109,7 @@ export default function SubmitGrievancePage() {
       {/* Back Button */}
       {currentStep > 1 && (
         <div className="flex items-center -mb-2">
-          <button 
+          <button
             onClick={() => {
                if (currentStep > 1) {
                   handleBack();
@@ -103,6 +140,8 @@ export default function SubmitGrievancePage() {
             setSubmissionChannel={setSubmissionChannel}
             identityValues={identityValues}
             setIdentityValue={setIdentityValue}
+            onSaveDraft={handleSaveDraft}
+            draftJustSaved={draftJustSaved}
           />
         )}
         {currentStep === 2 && (
@@ -119,10 +158,18 @@ export default function SubmitGrievancePage() {
             setZone={setZone}
             woreda={woreda}
             setWoreda={setWoreda}
+            kebele={kebele}
+            setKebele={setKebele}
+            serviceProviderName={serviceProviderName}
+            setServiceProviderName={setServiceProviderName}
             description={description}
             setDescription={setDescription}
+            desiredOutcome={desiredOutcome}
+            setDesiredOutcome={setDesiredOutcome}
             uploadedFile={uploadedFile}
             setUploadedFile={setUploadedFile}
+            onSaveDraft={handleSaveDraft}
+            draftJustSaved={draftJustSaved}
           />
         )}
         {currentStep === 3 && (
@@ -137,8 +184,13 @@ export default function SubmitGrievancePage() {
             region={region}
             zone={zone}
             woreda={woreda}
+            kebele={kebele}
+            serviceProviderName={serviceProviderName}
             description={description}
+            desiredOutcome={desiredOutcome}
             uploadedFile={uploadedFile}
+            onSaveDraft={handleSaveDraft}
+            draftJustSaved={draftJustSaved}
           />
         )}
       </div>
